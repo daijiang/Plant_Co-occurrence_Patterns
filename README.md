@@ -206,6 +206,7 @@ ggplot(explain.all.summary, aes(x=variable, y=Proportion, fill = Explanation)) +
 ```
 
 <img src="http://i.imgur.com/PO3lrOr.png" title="plot of chunk envi2" alt="plot of chunk envi2" style="display: block; margin: auto;" />
+
 For positive co-occurrent pairs, about 70% of them were driven by environmental filtering. Other ~30% were shaped by potential interactions, e.g. facilitation, among species. For negative co-occurrent pairs, about 75% of them were driven by biotic competition. 
 
 ### How good is this framework?
