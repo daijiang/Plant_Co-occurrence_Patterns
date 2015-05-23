@@ -117,7 +117,7 @@ extract_site = function(veg, cooc.pair, envi){
 # output data frame will have these columns: sp_pair, a, b, both, none, p.geod, and p.values for other env variables.
 get_p_envi_pairs = function(veg.df, cooc.df, envi.df, posneg, n = 5){
   data.pairs = dlply(cooc.df, .(pair_sp), function(x) extract_site(veg = veg.df, cooc.pair = x, envi = envi.df))
-  data.pairs$site.class = as.character(data.pairs$site.class)
+  # data.pairs$site.class = as.character(data.pairs$site.class)
   analysis.pairs = ldply(data.pairs, function(x){
     # print(names(x)[1:2])
     lx = data.frame(a = sum(x$site.class == "a"), b = sum(x$site.class == "b"), # how many sites in each type?
@@ -237,10 +237,9 @@ get_explain_envi_pairs = function(p.wide){
 # pos.neg "pos" for aggregated pairs, "neg" for seggregated pairs.
 # m how many sites at least to be included in data analysis? Some species only co-oc in one or two sites and not meaningful to be included.
 # veg.type: I have three veg types in my analysis...
-get_together = function(veg, cooc, envi, climate.period, pos.neg, m = 5, veg.type){
+get_together = function(veg, cooc, envi, pos.neg, m = 5){
   sitediff.p = get_p_envi_pairs(veg.df = veg, cooc.df = cooc,
-                                envi.df = select(filter(envi, date == climate.period), -date),
-                                posneg = pos.neg, n = m)
+                                envi.df = envi, posneg = pos.neg, n = m)
   p.explain0 = get_explain_envi_pairs(sitediff.p)
   p.explain = na.omit(p.explain0)
   p.explain.prop = ddply(p.explain[c("variable", "explain")], 
@@ -250,8 +249,6 @@ get_together = function(veg, cooc, envi, climate.period, pos.neg, m = 5, veg.typ
   #                                levels = c("Dispersal limitation", "Environmental filtering", 
   #                                           "Dispersal limitation and/or Environmental filtering", "Species interaction"))
   p.explain.prop$posneg = pos.neg
-  p.explain.prop$date = climate.period
-  p.explain.prop$vegtype = veg.type
   list(p.prop = p.explain.prop, pairs.explain = dcast(p.explain0[, -c(8,10,11)], ...~variable, value.var = "explain"), 
        p.mean.detail = p.explain0)
 }

@@ -31,7 +31,10 @@ load("xy.Rdata")
 envi = data.frame(x)
 row.names(envi) = paste0("site", 1:2500)
 colnames(envi) = paste0("envi", 1:5)
+envi$lat = runif(n = 2500, min = 40.00000, max = 45.999999)
+envi$long = runif(n = 2500, min = -90.00000, max = -80.999999)
 envi$site = row.names(envi) 
+envi = select(envi, site, long, lat, envi1:envi5)
 
 veg = data.frame(y)
 row.names(veg) = paste0("site", 1:2500)
@@ -72,7 +75,7 @@ It is highly significant, which suggests that the overall co-occurrence pattern 
 ### Pairwise co-occurrence patterns (species-level)
 Then we will test the significance of co-occurrence for each species pair.
 ```{r pairs, eval=FALSE}
-pairs.all = pair.ff(comm = veg, nsim = 5000, burn = 5000)
+pairs.all = pair.ff(comm = veg, nsim = 1000, burn = 10)
 pairs.all = p.adj(pairs.all)
 
 pairs.pos = filter(pairs.all, SES > 0 & p.value < 0.05)
