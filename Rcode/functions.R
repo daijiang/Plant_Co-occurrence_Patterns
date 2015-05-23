@@ -119,7 +119,7 @@ get_p_envi_pairs = function(veg.df, cooc.df, envi.df, posneg, n = 5){
   data.pairs = dlply(cooc.df, .(pair_sp), function(x) extract_site(veg = veg.df, cooc.pair = x, envi = envi.df))
   data.pairs$site.class = as.character(data.pairs$site.class)
   analysis.pairs = ldply(data.pairs, function(x){
-    print(names(x)[1:2])
+    # print(names(x)[1:2])
     lx = data.frame(a = sum(x$site.class == "a"), b = sum(x$site.class == "b"), # how many sites in each type?
                     both = sum(x$site.class == "both"), none = sum(x$site.class == "none"))
     envi.var = names(x)[-c(1:6)] # no sp1 sp2 site.class site lat long
