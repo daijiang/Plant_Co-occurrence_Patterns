@@ -6,7 +6,7 @@ library(vegan)
 
 ## classify sites for each pairs
 # site classification, x is a vector of three, will be used in extract_site function
-class_site = function(x){ 
+class_site = function(x){
   if (x[1] == 0 & x[2] == 0) {
     x[3] = "none"
   } else {
@@ -28,7 +28,7 @@ class_site = function(x){
 # cooc.pair has at least sp1_name and sp2_name columns
 # envi is a dataframe with site, long, lat, and envi var columns
 extract_site = function(veg, cooc.pair, envi){
-  x = veg[names(veg) %in% c(cooc.pair$sp1_name, cooc.pair$sp2_name)]
+  x = veg[c(cooc.pair$sp1_name, cooc.pair$sp2_name)]
   x$site.class = NA # three columns now
   x$site.class = apply(x, 1, class_site)
   # combine with site envi data
@@ -50,7 +50,9 @@ extract_site = function(veg, cooc.pair, envi){
 # output data frame will have these columns: sp_pair, a, b, both, none, p.geod, and p.values for other env variables.
 get_p_envi_pairs = function(veg.df, cooc.df, envi.df, posneg, n = 5){
   data.pairs = dlply(cooc.df, .(pair_sp), function(x) extract_site(veg = veg.df, cooc.pair = x, envi = envi.df))
+  #data.pairs$site.class = as.character(data.pairs$site.class)
   analysis.pairs = ldply(data.pairs, function(x){
+    # print(names(x)[1:2])
     lx = data.frame(a = sum(x$site.class == "a"), b = sum(x$site.class == "b"), # how many sites in each type?
                     both = sum(x$site.class == "both"), none = sum(x$site.class == "none"))
     envi.var = names(x)[-c(1:6)] # no sp1 sp2 site.class site lat long
@@ -61,30 +63,67 @@ get_p_envi_pairs = function(veg.df, cooc.df, envi.df, posneg, n = 5){
         p.geod = adonis(data2[c("long", "lat")] ~ data2$site.class, method = "euclidean")$aov.tab[6][1,1]
         p.envi = vector(length = length(envi.var))
         for (i in seq_along(envi.var)){
-          p.envi[i] = round(anova(lm(as.formula(paste0(envi.var[i], "~ site.class")), 
-                                     data = data2))[5][1,1], 5)
+          if(min(ddply(select_(data2, "site.class", envi.var[i]), .(site.class), function(x) sum(!is.na(x[,2])))$V1) < 3){
+            p.envi[i] = NA
+          } else {
+            p.envi[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2)$p.value
+          }
         }
         names(p.envi) = paste0("p.", envi.var)
-        data.frame(lx, p.geod = p.geod, t(p.envi))
+        mean.envi.both.a = vector(length = length(envi.var))
+        mean.envi.none.b = vector(length = length(envi.var))
+        for (i in seq_along(envi.var)){
+          # print(i)
+          if(min(ddply(select_(data2, "site.class", envi.var[i]), .(site.class), function(x) sum(!is.na(x[,2])))$V1) < 3){
+            mean.envi.both.a[i] = mean.envi.none.b[i] = NA
+          } else {
+            mean.envi.both.a[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2, paired = F, var.equal = T)$estimate[1]
+            mean.envi.none.b[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2, paired = F, var.equal = T)$estimate[2]
+          }
+        }
+        names(mean.envi.both.a) = paste0("mean.envi.both.a.", envi.var)
+        names(mean.envi.none.b) = paste0("mean.envi.none.b.", envi.var)
+        data.frame(lx, p.geod = p.geod, t(p.envi), t(mean.envi.both.a), t(mean.envi.none.b))
       } else { # if less than n sites for both and none, set as NA.
-        p.envi = rep(NA, length(envi.var))
+        mean.envi.both.a= mean.envi.none.b=p.envi = rep(NA, length(envi.var))
         names(p.envi) = paste0("p.", envi.var)
-        data.frame(lx, p.geod = NA, t(p.envi))
+        names(mean.envi.both.a) = paste0("mean.envi.both.a.", envi.var)
+        names(mean.envi.none.b) = paste0("mean.envi.none.b.", envi.var)
+        data.frame(lx, p.geod = NA, t(p.envi), t(mean.envi.both.a), t(mean.envi.none.b))
       }} else { # negative cooc: compare a and b
-        data2 = subset(x, site.class %in% c("a", "b"))
+        data2 = filter(x, site.class %in% c("a", "b"))
         if (lx$a >= n & lx$b >= n) {
           p.geod = adonis(data2[c("long", "lat")] ~ data2$site.class, method = "euclidean")$aov.tab[6][1,1]
           p.envi = vector(length = length(envi.var))
           for (i in seq_along(envi.var)){
-            p.envi[i] = round(anova(lm(as.formula(paste0(envi.var[i], "~ site.class")), 
-                                       data = data2))[5][1,1], 5)
+            if(min(ddply(select_(data2, "site.class", envi.var[i]), .(site.class), function(x) sum(!is.na(x[,2])))$V1) < 3){
+              p.envi[i] = NA
+            } else {
+              p.envi[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2)$p.value
+            }
           }
           names(p.envi) = paste0("p.", envi.var)
-          data.frame(lx, p.geod = p.geod, t(p.envi))
+          mean.envi.both.a = vector(length = length(envi.var))
+          mean.envi.none.b = vector(length = length(envi.var))
+          for (i in seq_along(envi.var)){
+            # print(i)
+            if(min(ddply(select_(data2, "site.class", envi.var[i]), .(site.class), function(x) sum(!is.na(x[,2])))$V1) < 3){
+              mean.envi.both.a[i] = mean.envi.none.b[i] = NA
+            } else {
+              mean.envi.both.a[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2, paired = F, var.equal = T)$estimate[1]
+              mean.envi.none.b[i] = t.test(as.formula(paste0(envi.var[i], "~ site.class")), data = data2, paired = F, var.equal = T)$estimate[2]
+            }
+          }
+          names(mean.envi.both.a) = paste0("mean.envi.both.a.", envi.var)
+          names(mean.envi.none.b) = paste0("mean.envi.none.b.", envi.var)
+          data.frame(lx, p.geod = p.geod, t(p.envi), t(mean.envi.both.a), t(mean.envi.none.b))
+          
         } else {
-          p.envi = rep(NA, length(envi.var))
+          mean.envi.both.a= mean.envi.none.b=p.envi = rep(NA, length(envi.var))
           names(p.envi) = paste0("p.", envi.var)
-          data.frame(lx, p.geod = NA, t(p.envi))
+          names(mean.envi.both.a) = paste0("mean.envi.both.a.", envi.var)
+          names(mean.envi.none.b) = paste0("mean.envi.none.b.", envi.var)
+          data.frame(lx, p.geod = NA, t(p.envi), t(mean.envi.both.a), t(mean.envi.none.b))
         }
       }
   })
@@ -94,22 +133,31 @@ get_p_envi_pairs = function(veg.df, cooc.df, envi.df, posneg, n = 5){
 # this function is used to get explaination for each pair of species for each env variable
 # p.wide is the result data frame from the above function: get_p_envi_pairs()
 get_explain_envi_pairs = function(p.wide){
-  p.long = melt(p.wide, id.vars = 1:6, value.name = "p.value") # 1:6 columns: sppair a b both none p.geod
-  ddply(p.long, .(variable), function(x){
+  n.var = (dim(p.wide)[2] - 6)/3
+  p.long = melt(p.wide, id.vars = 1:6, measure.vars = 7:(7+n.var-1), value.name = "p.value") # 1:6 columns: sp-pair a b both none p.geod
+  p.long2 = ddply(p.long, .(variable), function(x){
     x2 = adply(x, 1, function(x1){
       if(!is.na(x1$p.geod)){
-        if(x1$p.geod <= 0.05){
-          if(x1$p.value <= 0.05) x1$explain = "Disp limitation and/or Envi filtering" else x1$explain = "Disp limitation"
-        }else{ # p.geod > 0.05
-          if(x1$p.value <= 0.05) x1$explain = "Envi filtering" else x1$explain = "Species interaction"
+        if(is.na(x1$p.value)){x1$explain = NA} else{
+          if(x1$p.geod <= 0.05){
+            if(x1$p.value <= 0.05) x1$explain = "Dispersal limitation and/or Environmental filtering" else x1$explain = "Dispersal limitation"
+          }else{ # p.geod > 0.05
+            if(x1$p.value <= 0.05) x1$explain = "Environmental filtering" else x1$explain = "Species interaction"
+          }
+        }}else{
+          x1$explain = NA
         }
-      }else{
-        x1$explain = NA
-      }
     })
     x2$explain = x2$V1; x2$V1=NULL
     x2
   })
+  mean.envi.both.a = melt(p.wide, id.vars = 1:6, measure.vars = (7+n.var):(7+2*n.var-1), 
+                          variable.name = "both.a.variable", value.name = "mean.envi.both.a")
+  mean.envi.none.b = melt(p.wide, id.vars = 1:6, measure.vars = (7+2*n.var):(7+3*n.var-1), 
+                          variable.name = "none.b.variable", value.name = "mean.envi.none.b")
+  p.long2$mean.envi.both.a = mean.envi.both.a$mean.envi.both.a
+  p.long2$mean.envi.none.b = mean.envi.none.b$mean.envi.none.b
+  p.long2
 }
 
 # this function is a wrap of all above ones.
@@ -120,19 +168,21 @@ get_explain_envi_pairs = function(p.wide){
 # pos.neg "pos" for aggregated pairs, "neg" for seggregated pairs.
 # m how many sites at least to be included in data analysis? Some species only co-oc in one or two sites and not meaningful to be included.
 # veg.type: I have three veg types in my analysis...
-get_together = function(veg, cooc, envi, climate.period, pos.neg, m = 5, veg.type){
-  sitediff.p = get_p_envi_pairs(veg.df = veg, cooc.df = cooc, 
-                                envi.df = select(subset(envi, date == climate.period), -date), 
+get_together = function(veg, cooc, envi, pos.neg, m = 5){
+  sitediff.p = get_p_envi_pairs(veg.df = veg, cooc.df = cooc,
+                                envi.df = envi,
                                 posneg = pos.neg, n = m)
-  p.explain = na.omit(get_explain_envi_pairs(sitediff.p))
-  p.explain.prop = ddply(p.explain[c("variable", "explain")], .(variable), function(x) data.frame(prop.table(table(x$explain))))
-  p.explain.prop$Var1 = factor(p.explain.prop$Var1, 
-                               levels = c("Disp limitation", "Envi filtering", 
-                                          "Disp limitation and/or Envi filtering", "Species interaction"))
+  p.explain0 = get_explain_envi_pairs(sitediff.p)
+  p.explain = na.omit(p.explain0)
+  p.explain.prop = ddply(p.explain[c("variable", "explain")], 
+                         .(variable), 
+                         function(x) data.frame(prop.table(table(x$explain))))
+  #   p.explain.prop$Var1 = factor(p.explain.prop$Var1, 
+  #                                levels = c("Dispersal limitation", "Environmental filtering", 
+  #                                           "Dispersal limitation and/or Environmental filtering", "Species interaction"))
   p.explain.prop$posneg = pos.neg
-  p.explain.prop$date = climate.period
-  p.explain.prop$vegtype = veg.type
-  p.explain.prop
+  list(p.prop = p.explain.prop, pairs.explain = dcast(p.explain0[, -c(8,10,11)], ...~variable, value.var = "explain"), 
+       p.mean.detail = p.explain0)
 }
 
 ## examples ---------
