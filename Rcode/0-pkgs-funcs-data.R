@@ -1,5 +1,5 @@
 ## pkgs and functions ----
-source("functions.R")
+source("funs_include_geodist_envi.R")
 
 ## data----
 load("xy.Rdata")
