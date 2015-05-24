@@ -65,7 +65,7 @@ load("testresult.RData")
 ### Overall co-occurrence pattern (site-level)
 Then let's look at the overall randomness of co-occurrence patterns. C-score is the average of all checkboad units. Thus, higher cscores suggest stronger competition among species. But we cannot naively say that species competition is the main mechanisms. Because things like habitat preferences, dispersal ability, etc. can also get the same pattern.
 ```{r cscore, eval=FALSE}
-cscores = cs_sim_fixsp_fixsite(veg)
+cscores = cs_sim(veg, nullmethod = "tswap", n = 5000)
 ```
 ```{r cscore2}
 cscores
@@ -75,7 +75,7 @@ It is highly significant, which suggests that the overall co-occurrence pattern 
 ### Pairwise co-occurrence patterns (species-level)
 Then we will test the significance of co-occurrence for each species pair.
 ```{r pairs, eval=FALSE}
-pairs.all = pair.ff(comm = veg, nsim = 1000, burn = 10)
+pairs.all = pair.ff(comm = veg, nullmethod = "tswap", formu = "(A-J)*(B-J)", nsim = 1000, burn = 10)
 pairs.all = p.adj(pairs.all)
 
 pairs.pos = filter(pairs.all, SES > 0 & p.value < 0.05)
