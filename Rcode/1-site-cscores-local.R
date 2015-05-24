@@ -2,14 +2,14 @@
 source("0-pkgs-funcs-data.R")
 
 ### c-score of all sites ----
-(cscores = cs_sim_fixsp_fixsite(veg)) 
+(cscores = cs_sim(veg, nullmethod = "tswap", n = 5000)) 
 
 # siginificant overall co-oc pattern. z > 2, suggesting competition?
 
 ### pairwise co-oc ----
 ## who co-oc with who?
 
-pairs.all = pair.ff(comm = veg, nsim = 5000, burn = 5000)
+pairs.all = pair.ff(comm = veg, nullmethod = "tswap", formu = "(A-J)*(B-J)", nsim = 5000, burn = 5000)
 pairs.all = p.adj(pairs.all)
 head(pairs.all)
 
