@@ -12,6 +12,8 @@ This project tests the effectiveness of Blois *et al* [2014](http://onlinelibrar
       + for the same pair, we may conclude that it was shaped by environmental filtering by one environmental variable and species interaction by another environmental variable.
 4. Get the proportion of species pairs that can be explained by either mechanism for each environmental variable.
 
+*`funcs_include_geodist_envi.R` now includes geodistance of sites into the analyses.*
+
 See R codes for details.
 
 ### Data
